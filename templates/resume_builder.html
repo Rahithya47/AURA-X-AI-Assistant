@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resume Builder — AURA-X</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="navbar">
+        <div class="nav-brand">
+            <span class="brand-icon">◈</span>
+            <span class="brand-name">AURA-X</span>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link">
+                <span class="nav-icon">◉</span> Home
+            </a>
+            <a href="/document-chat" class="nav-link">
+                <span class="nav-icon">◎</span> Document Chat
+            </a>
+            <a href="/resume-builder" class="nav-link active">
+                <span class="nav-icon">◈</span> Resume Builder
+            </a>
+            <a href="/manage-people" class="nav-link">
+                <span class="nav-icon">◍</span> Manage People
+            </a>
+        </div>
+        <div class="nav-status">
+            <span class="status-dot" id="statusDot"></span>
+            <span class="status-text" id="statusText">Checking...</span>
+        </div>
+    </nav>
+
+    <!-- PAGE HEADER -->
+    <div class="page-header">
+        <div class="page-header-content">
+            <h1><span class="gradient-text">◍ Resume Builder</span></h1>
+            <p>Upload your resume and job description — get AI-powered match analysis and improvement suggestions</p>
+        </div>
+    </div>
+
+    <!-- UPLOAD SECTION -->
+    <div class="resume-layout">
+
+        <!-- Upload Cards Row -->
+        <div class="upload-row">
+
+            <!-- Resume Upload -->
+            <div class="upload-card">
+                <div class="upload-card-header">
+                    <span class="upload-card-icon">📄</span>
+                    <h3>Your Resume</h3>
+                </div>
+                <div class="upload-area resume-upload-area"
+                     id="resumeUploadArea"
+                     onclick="document.getElementById('resumeInput').click()"
+                     ondrop="handleResumeDrop(event)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)">
+                    <div class="upload-icon">◍</div>
+                    <div class="upload-text">Upload Resume</div>
+                    <div class="upload-subtext">PDF · DOCX · TXT</div>
+                    <input type="file"
+                           id="resumeInput"
+                           accept=".pdf,.docx,.doc,.txt"
+                           style="display:none;"
+                           onchange="handleResumeSelect(event)">
+                </div>
+                <div class="file-selected-info" id="resumeFileInfo" style="display:none;">
+                    <span class="file-icon">◍</span>
+                    <span id="resumeFileName">resume.pdf</span>
+                    <button onclick="clearResumeFile()" class="clear-file">✕</button>
+                </div>
+            </div>
+
+            <!-- Job Description Upload/Paste -->
+            <div class="upload-card">
+                <div class="upload-card-header">
+                    <span class="upload-card-icon">💼</span>
+                    <h3>Job Description</h3>
+                </div>
+
+                <!-- JD Tabs -->
+                <div class="jd-tabs">
+                    <button class="jd-tab active" onclick="switchJDTab('upload')">
+                        Upload File
+                    </button>
+                    <button class="jd-tab" onclick="switchJDTab('paste')">
+                        Paste Text
+                    </button>
+                </div>
+
+                <!-- Upload Tab -->
+                <div id="jdUploadTab">
+                    <div class="upload-area jd-upload-area"
+                         id="jdUploadArea"
+                         onclick="document.getElementById('jdInput').click()"
+                         ondrop="handleJDDrop(event)"
+                         ondragover="handleDragOver(event)"
+                         ondragleave="handleDragLeave(event)">
+                        <div class="upload-icon">◎</div>
+                        <div class="upload-text">Upload JD File</div>
+                        <div class="upload-subtext">PDF · DOCX · TXT</div>
+                        <input type="file"
+                               id="jdInput"
+                               accept=".pdf,.docx,.doc,.txt"
+                               style="display:none;"
+                               onchange="handleJDSelect(event)">
+                    </div>
+                    <div class="file-selected-info" id="jdFileInfo" style="display:none;">
+                        <span class="file-icon">◎</span>
+                        <span id="jdFileName">job_description.pdf</span>
+                        <button onclick="clearJDFile()" class="clear-file">✕</button>
+                    </div>
+                </div>
+
+                <!-- Paste Tab -->
+                <div id="jdPasteTab" style="display:none;">
+                    <textarea
+                        id="jdTextarea"
+                        class="jd-textarea"
+                        placeholder="Paste the job description here...
+
+Example:
+We are looking for a Python Developer with experience in:
+- Flask or Django
+- Machine Learning
+- REST APIs
+- Docker
+- AWS or GCP...">
+                    </textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analyze Button -->
+        <div class="analyze-section">
+            <button class="btn-primary analyze-resume-btn"
+                    onclick="analyzeResume()"
+                    id="analyzeResumeBtn">
+                ◈ Analyze Resume Match
+            </button>
+            <p class="analyze-hint">
+                AI will compare your resume against the job requirements
+            </p>
+        </div>
+
+        <!-- Loading State -->
+        <div class="resume-loading" id="resumeLoading" style="display:none;">
+            <div class="loading-spinner large"></div>
+            <p>Analyzing your resume...</p>
+            <p class="loading-sub">This may take a moment</p>
+        </div>
+
+        <!-- Results Section (hidden until analyzed) -->
+        <div class="resume-results" id="resumeResults" style="display:none;">
+
+            <!-- Match Score Card -->
+            <div class="results-header">
+                <h2>Analysis Results</h2>
+                <button class="btn-secondary" onclick="downloadReport()">
+                    ⬇ Download Report
+                </button>
+            </div>
+
+            <div class="results-grid">
+
+                <!-- Score Card -->
+                <div class="result-card score-card">
+                    <h3>Match Score</h3>
+                    <div class="score-circle" id="scoreCircle">
+                        <div class="score-number" id="scoreNumber">0%</div>
+                        <div class="score-label">Match</div>
+                    </div>
+                    <div class="score-bar">
+                        <div class="score-fill" id="scoreFill"></div>
+                    </div>
+                </div>
+
+                <!-- Missing Keywords -->
+                <div class="result-card keywords-card">
+                    <h3>Missing Keywords</h3>
+                    <div class="keywords-list" id="missingKeywords">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+
+                <!-- Matched Keywords -->
+                <div class="result-card matched-card">
+                    <h3>Matched Keywords</h3>
+                    <div class="keywords-list" id="matchedKeywords">
+                        <!-- Injected by JS -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- AI Suggestions -->
+            <div class="suggestions-card">
+                <h3>◈ AI Improvement Suggestions</h3>
+                <div class="suggestions-content" id="suggestionsContent">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast"></div>
+
+    <!-- FOOTER -->
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-brand">
+                <span class="brand-icon">◈</span>
+                <span>AURA-X AI Assistant</span>
+            </div>
+            <div class="footer-info">🔒 100% Private — Runs Locally</div>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
